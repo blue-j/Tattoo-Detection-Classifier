@@ -14,11 +14,14 @@ experiments = 5,
 learning rate = 1e-4,
 epochs = 25,
 batch size = 128,
-training mode = True,
+training mode = True
 
 # Results
 
 The achieved accuracy of this model is **86.23%**.
+
+
+
 
 
 
