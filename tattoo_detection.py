@@ -1,7 +1,10 @@
 """
-Author: Dimitrios Spanos
+
+Tattoo Detection Binary Classifier
 Date: 26/07/2021
+
 """
+
 from CNN import CNN
 import torch
 import torch.nn as nn
@@ -20,6 +23,63 @@ learning_rate = 1e-4
 epochs = 25
 batch_size = 128
 training_mode = False
+
+
+def main():
+    # Creation of train and test loaders
+    training_loader, testing_loader = getData()
+
+    # Creation of the CNN model
+    CNNmodel = CNN()
+    if device == torch.device("cuda"):
+        CNNmodel.cuda()
+
+    if training_mode:
+        max_accuracy = 0
+        for i in range(experiments):
+
+            # Reset the model
+            CNNmodel = CNN()
+            if device == torch.device("cuda"):
+                CNNmodel.cuda()
+
+            # Training of the model
+            CNNmodel = train(CNNmodel, training_loader, testing_loader)
+
+            # Save the model
+            if test(CNNmodel, testing_loader) > max_accuracy:
+                torch.save(CNNmodel.state_dict(), 'CNN.pt')
+                max_accuracy = test(CNNmodel, testing_loader)
+
+    # Load the model
+    CNNmodel.load_state_dict(torch.load('CNN.pt'))
+    test(CNNmodel, testing_loader)
+
+
+def getData():
+    """
+    :return: The train loader and test loader
+    """
+    train_tranform = transforms.Compose([
+        transforms.RandomRotation(15),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.Resize(256), # The shorter side of the images is rescaled to 256 pixels
+        transforms.CenterCrop(227), # The central patch with a size of 227x227 pixels is cropped
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+
+    test_transform = transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(227),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+
+    train_data = datasets.ImageFolder(os.path.join(root, 'Flickr(10k)'), transform=train_tranform)
+    test_data = datasets.ImageFolder(os.path.join(root, 'Flickr(2349)'), transform=test_transform)
+
+    return DataLoader(train_data, batch_size=batch_size, shuffle=True), DataLoader(test_data, batch_size=batch_size)
 
 
 def train(model, train_loader, test_loader):
@@ -59,7 +119,7 @@ def train(model, train_loader, test_loader):
             loss.backward()
             optimizer.step()
 
-        print(f"\nEpoch:{epoch} Loss:{loss.item():.5f}Accuracy:{(float(num_correct) / float(num_samples) * 100):.2f}%\n")
+        print(f"\nEpoch:{epoch} Loss:{loss.item():.5f} Accuracy:{(float(num_correct) / float(num_samples) * 100):.2f}%\n")
 
     # OPTIONAL
     """
@@ -103,59 +163,5 @@ def test(trained_model, loader):
     return accuracy
 
 
-def getData():
-    """
-    :return: The train loader and test loader
-    """
-    train_tranform = transforms.Compose([
-        transforms.RandomRotation(15),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.Resize(256), # The shorter side of the images is rescaled to 256 pixels
-        transforms.CenterCrop(227), # The central patch with a size of 227x227 pixels is cropped
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-
-    test_transform = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(227),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-
-    train_data = datasets.ImageFolder(os.path.join(root, 'Flickr(10k)'), transform=train_tranform)
-    test_data = datasets.ImageFolder(os.path.join(root, 'Flickr(2349)'), transform=test_transform)
-
-    return DataLoader(train_data, batch_size=batch_size, shuffle=True), DataLoader(test_data, batch_size=batch_size)
-
-
 if __name__ == '__main__':
-
-    # Creation of train and test loaders
-    training_loader, testing_loader = getData()
-
-    # Creation of the CNN model
-    CNNmodel = CNN()
-    if device == torch.device("cuda"):
-        CNNmodel.cuda()
-
-    if training_mode:
-        max_accuracy = 0
-        for i in range(experiments):
-
-            # Reset the model
-            CNNmodel = CNN()
-            if device == torch.device("cuda"):
-                CNNmodel.cuda()
-
-            # Training of the model
-            CNNmodel = train(CNNmodel, training_loader, testing_loader)
-
-            # Save the model
-            if test(CNNmodel, testing_loader) > max_accuracy:
-                torch.save(CNNmodel.state_dict(), 'CNN.pt')
-                max_accuracy = test(CNNmodel, testing_loader)
-
-    # Load the model
-    CNNmodel.load_state_dict(torch.load('CNN.pt'))
-    test(CNNmodel, testing_loader)
+    main()
